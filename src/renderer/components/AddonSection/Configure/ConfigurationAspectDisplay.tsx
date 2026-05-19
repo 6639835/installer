@@ -22,9 +22,10 @@ export const ConfigurationAspectDisplay: FC<ConfigurationAspectDisplayProps> = (
     <div>
       <h2 className="mb-2 flex items-center justify-between font-bold text-white">{aspect.title}</h2>
       <div className="flex flex-row gap-x-8">
-        {/* noop */}
         {aspect.choiceKind === 'yesNo' && (
-          <YesNoOptionToggle enabled={on} onToggle={() => setOn((old) => !old)} downloadSize={'287.5 MB'} />
+          <YesNoOptionToggle enabled={on} onToggle={() => setOn((old) => !old)}>
+            {chosen.title}
+          </YesNoOptionToggle>
         )}
       </div>
       {chosen && chosen.description && (

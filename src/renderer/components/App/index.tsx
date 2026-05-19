@@ -123,7 +123,7 @@ const App = (): JSX.Element => {
               </div>
             </div>
 
-            <div className="flex h-full flex-row justify-start pt-10">
+            <div className="flex h-full flex-row justify-start pt-12">
               <div className="z-40 h-full">
                 <NavBar>
                   {configuration.publishers

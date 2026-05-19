@@ -22,7 +22,7 @@ export const Toggle: FC<ToggleProps> = ({
     style={{ transform: `scale(${scale})` }}
   >
     <div
-      className={cn(`mx-1.5 size-6 rounded-full bg-gray-400 transition duration-200`, value && onColor)}
+      className={cn(`mx-1.5 size-6 rounded-full transition duration-200`, value ? onColor : 'bg-gray-400')}
       style={{ transform: `translate(${value ? '12px' : '1px'}, 0)` }}
     />
   </div>

@@ -7,7 +7,7 @@ export interface YesNoOptionToggleProps {
   downloadSize?: string;
 }
 
-export const YesNoOptionToggle: FC<YesNoOptionToggleProps> = ({ enabled, onToggle, downloadSize }) => {
+export const YesNoOptionToggle: FC<YesNoOptionToggleProps> = ({ enabled, onToggle, downloadSize, children }) => {
   const handleClick = onToggle;
 
   const bgColor = enabled ? 'bg-utility-green' : 'bg-navy-light';
@@ -21,7 +21,7 @@ export const YesNoOptionToggle: FC<YesNoOptionToggleProps> = ({ enabled, onToggl
       <Toggle value={enabled} onToggle={handleClick} scale={1.5} onColor={'bg-utility-green'} />
 
       <span className="flex gap-x-20">
-        <span className={`font-manrope text-4xl font-bold ${titleColor}`}>Terrain Database</span>
+        <span className={`font-manrope text-4xl font-bold ${titleColor}`}>{children}</span>
         {downloadSize && <span className={`font-manrope text-4xl font-semibold ${titleColor}`}>{downloadSize}</span>}
       </span>
     </div>

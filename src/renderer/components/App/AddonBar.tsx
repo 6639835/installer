@@ -100,7 +100,7 @@ export const AddonBarItem: FC<AddonBarItemProps> = ({ addon, enabled, selected, 
     >
       <span className="mb-2.5 font-manrope text-2xl font-medium text-current">{addon.aircraftName}</span>
       <div className="mt-1 flex h-10 flex-row justify-between">
-        <img className="h-10 w-max" src={selected ? addon.titleImageUrl : addon.titleImageUrlSelected} />
+        <img className="h-10 w-max" src={selected ? addon.titleImageUrlSelected : addon.titleImageUrl} />
         {installState && <AddonBarItemStatus status={installState.status} />}
       </div>
     </div>

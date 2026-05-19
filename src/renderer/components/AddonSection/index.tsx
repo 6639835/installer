@@ -272,7 +272,7 @@ export const AddonSection = (): JSX.Element => {
 
   return (
     <div className="flex size-full flex-row">
-      <div className="z-40 h-full flex-none bg-navy-medium" style={{ width: '29rem' }}>
+      <div className="z-40 h-full flex-none bg-navy-light" style={{ width: '29rem' }}>
         <div className="flex h-full flex-col divide-y divide-gray-700">
           <AddonBar>
             <div className="flex flex-col gap-y-4">
@@ -466,7 +466,7 @@ const About: FC<{ addon: Addon }> = ({ addon }) => (
     <div className="flex items-center justify-between">
       <h2 className="font-bold text-white">About</h2>
 
-      <h2 className="text-white">{addon.aircraftName}</h2>
+      <span className="font-manrope text-4xl font-medium text-white">{addon.aircraftName}</span>
     </div>
     <ReactMarkdown
       className="font-manrope text-xl font-light leading-relaxed text-white"
