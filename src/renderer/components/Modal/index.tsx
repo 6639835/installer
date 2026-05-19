@@ -223,7 +223,7 @@ export const ChangelogModal: React.FC = () => {
         </div>
       </div>
       <div className="mt-4 h-96 overflow-y-scroll">
-        {(changelog as ChangelogType).releases.map((release) => (
+        {(changelog as unknown as ChangelogType).releases.map((release) => (
           <div key={release.name} className="mb-6">
             <div className="mb-2 text-4xl font-bold">{release.name}</div>
             {release.changes.map((change, index) => (

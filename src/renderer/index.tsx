@@ -1,21 +1,24 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import * as Sentry from '@sentry/electron/renderer';
+import * as Sentry from '@sentry/browser';
 import { browserTracingIntegration } from '@sentry/browser';
 import { Provider } from 'react-redux';
 import App from 'renderer/components/App';
 import { Configuration, InstallerConfiguration } from 'renderer/utils/InstallerConfiguration';
-import { ipcRenderer } from 'electron';
+import { ipcRenderer } from 'renderer/platform/desktop';
 import { Directories } from 'renderer/utils/Directories';
 import channels from 'common/channels';
 import { MemoryRouter } from 'react-router-dom';
 import { store } from 'renderer/redux/store';
 import { setConfiguration } from './redux/features/configuration';
-import { GitVersions } from '@flybywiresim/api-client';
 import { addReleases } from 'renderer/redux/features/releaseNotes';
 import { ModalProvider } from 'renderer/components/Modal';
 import { setSentrySessionID } from 'renderer/redux/features/sentrySessionID';
 import packageJson from '../../package.json';
+import { initializeNative } from 'renderer/platform/native';
+import { initializeSettings } from 'renderer/rendererSettings';
+import { ensureSimulatorPathDefaults } from 'renderer/actions/install-path.utils';
+import { GitHub } from 'renderer/utils/GitHub';
 
 import 'simplebar-react/dist/simplebar.min.css';
 import './index.scss';
@@ -36,20 +39,27 @@ Sentry.init({
   // sampleRate: 0.1,
 });
 
-// Request Sentry session ID
-ipcRenderer.invoke(channels.sentry.requestSessionID).then((sessionID) => {
-  store.dispatch(setSentrySessionID(sessionID));
-});
+const renderApp = async () => {
+  await initializeNative();
+  await initializeSettings();
+  await ensureSimulatorPathDefaults();
 
-// Obtain configuration and use it
-InstallerConfiguration.obtain()
+  // Request Sentry session ID
+  ipcRenderer.invoke(channels.sentry.requestSessionID).then((sessionID) => {
+    store.dispatch(setSentrySessionID(sessionID as string));
+  });
+
+  return InstallerConfiguration.obtain();
+};
+
+renderApp()
   .then((config: Configuration) => {
     store.dispatch(setConfiguration({ configuration: config }));
 
     for (const publisher of config.publishers) {
       for (const addon of publisher.addons) {
         if (addon.repoOwner && addon.repoName) {
-          GitVersions.getReleases(addon.repoOwner, addon.repoName, false, 0, 5).then((res) => {
+          GitHub.getReleases(addon.repoOwner, addon.repoName, 0, 5).then((res) => {
             const content = res.map((release) => ({
               name: release.name,
               publishedAt: release.publishedAt.getTime(),
@@ -71,7 +81,7 @@ InstallerConfiguration.obtain()
 
     console.log('Using this configuration:', config);
 
-    Directories.removeAllTemp();
+    void Directories.removeAllTemp();
 
     ReactDOM.render(
       <Provider store={store}>

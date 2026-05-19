@@ -1,7 +1,6 @@
 import { Directories } from 'renderer/utils/Directories';
-import fs from 'fs';
-import checkDiskSpace from 'check-disk-space';
 import { Addon } from './InstallerConfiguration';
+import { native } from 'renderer/platform/native';
 
 export enum FreeDiskSpaceStatus {
   Unknown,
@@ -31,27 +30,27 @@ export class FreeDiskSpace {
     let resolvedTempDir = Directories.tempLocation(addon.simulator);
 
     try {
-      resolvedDestDir = await fs.promises.readlink(resolvedDestDir);
+      resolvedDestDir = (await native.readLink(resolvedDestDir)) ?? resolvedDestDir;
     } catch (e) {
       // noop - it's probably not a link
     }
 
     try {
-      resolvedTempDir = await fs.promises.readlink(resolvedTempDir);
+      resolvedTempDir = (await native.readLink(resolvedTempDir)) ?? resolvedTempDir;
     } catch (e) {
       // noop - it's probably not a link
     }
 
     let freeDestDirSpace = NaN;
     try {
-      freeDestDirSpace = (await checkDiskSpace(resolvedDestDir)).free;
+      freeDestDirSpace = await native.freeDiskSpace(resolvedDestDir);
     } catch (e) {
       // noop - user probably does not have `wmic` on their system
     }
 
     let freeTempDirSpace = NaN;
     try {
-      freeTempDirSpace = (await checkDiskSpace(resolvedTempDir)).free;
+      freeTempDirSpace = await native.freeDiskSpace(resolvedTempDir);
     } catch (e) {
       // noop - user probably does not have `wmic` on their system
     }

@@ -3,7 +3,7 @@ import { useSetting } from 'renderer/rendererSettings';
 import { Toggle } from 'renderer/components/Toggle';
 import * as packageInfo from '../../../../package.json';
 import { Button, ButtonType } from 'renderer/components/Button';
-import { ipcRenderer } from 'electron';
+import { ipcRenderer } from 'renderer/platform/desktop';
 import channels from 'common/channels';
 
 const SettingsItem: FC<{ name: string }> = ({ name, children }) => (

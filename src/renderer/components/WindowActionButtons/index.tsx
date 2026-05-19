@@ -1,6 +1,6 @@
 import React from 'react';
-import { shell } from 'electron';
-import { ipcRenderer } from 'electron';
+import { shell } from 'renderer/platform/desktop';
+import { ipcRenderer } from 'renderer/platform/desktop';
 import { WindowsControl } from 'react-windows-controls';
 import channels from 'common/channels';
 import { Directories } from 'renderer/utils/Directories';
@@ -36,7 +36,7 @@ export const WindowButtons: React.FC = () => {
     ipcRenderer.send(channels.window.maximize);
   };
 
-  const handleClose = () => {
+  const handleClose = async () => {
     const installStatuses = store.getState().installStatus;
 
     const anyInstalling = Object.values(installStatuses).some((it) =>
@@ -52,7 +52,7 @@ export const WindowButtons: React.FC = () => {
         />,
       );
     } else {
-      Directories.removeAllTemp();
+      await Directories.removeAllTemp();
       ipcRenderer.send(channels.window.close);
     }
   };

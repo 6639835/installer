@@ -70,6 +70,9 @@ declare module '*.module.sass' {
   export default classes;
 }
 
-declare module '*.yaml' {}
+declare module '*.yaml' {
+  const value: Record<string, unknown>;
+  export default value;
+}
 
 declare module '*.md' {}

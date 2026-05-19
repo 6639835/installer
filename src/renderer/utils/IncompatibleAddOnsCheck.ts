@@ -1,8 +1,8 @@
 import { Directories } from 'renderer/utils/Directories';
 import { Addon, AddonIncompatibleAddon } from 'renderer/utils/InstallerConfiguration';
-import fs from 'fs';
 import path from 'path';
 import semverSatisfies from 'semver/functions/satisfies';
+import { native } from 'renderer/platform/native';
 
 export class IncompatibleAddOnsCheck {
   /**
@@ -19,18 +19,17 @@ export class IncompatibleAddOnsCheck {
     const comDir = Directories.communityLocation(addon.simulator);
 
     try {
-      const addonFolders = fs.readdirSync(comDir);
+      const addonFolders = await native.readDir(comDir);
 
       for (const entry of addonFolders) {
-        const filePath = path.join(comDir, entry);
-        const stat = fs.statSync(filePath);
+        const filePath = path.join(comDir, entry.name);
 
-        if (stat.isDirectory()) {
-          const dirEntries = fs.readdirSync(filePath);
+        if (entry.isDirectory) {
+          const dirEntries = await native.readDir(filePath);
 
-          if (dirEntries.includes(manifestFileName)) {
+          if (dirEntries.some((dirEntry) => dirEntry.name === manifestFileName)) {
             try {
-              const manifest = JSON.parse(fs.readFileSync(path.join(filePath, manifestFileName), 'utf8'));
+              const manifest = JSON.parse(await native.readText(path.join(filePath, manifestFileName)));
 
               for (const item of addon.incompatibleAddons) {
                 // This checks the configuration item properties (if set) against the manifest.json file
@@ -50,7 +49,7 @@ export class IncompatibleAddOnsCheck {
                     title: item.title,
                     creator: item.creator,
                     packageVersion: item.packageVersion,
-                    folder: entry,
+                    folder: entry.name,
                     description: item.description,
                   });
                 }

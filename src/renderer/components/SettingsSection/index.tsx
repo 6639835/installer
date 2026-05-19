@@ -10,7 +10,7 @@ import settings from 'renderer/rendererSettings';
 import * as packageInfo from '../../../../package.json';
 import { Button, ButtonType } from '../Button';
 import { PromptModal, useModals } from 'renderer/components/Modal';
-import { ipcRenderer } from 'electron';
+import { ipcRenderer } from 'renderer/platform/desktop';
 import channels from 'common/channels';
 
 interface InstallButtonProps {

@@ -1,7 +1,7 @@
 import React, { FC, useEffect, useState } from 'react';
 import FbwTail from 'renderer/assets/FBW-Tail.svg';
 import * as packageInfo from '../../../../package.json';
-import { shell } from 'electron';
+import { shell } from 'renderer/platform/desktop';
 import { ChangelogModal, useModals } from '../Modal';
 import { SentrySessionCard } from 'renderer/components/SentrySessionCard';
 import { ThirdPartyLicensesModal } from 'renderer/components/Modal/ThirdPartyLicensesModal';

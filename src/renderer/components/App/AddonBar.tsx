@@ -1,6 +1,6 @@
 import React, { FC, memo } from 'react';
 import { Addon, Publisher, PublisherButton } from 'renderer/utils/InstallerConfiguration';
-import { shell } from 'electron';
+import { shell } from 'renderer/platform/desktop';
 import * as BootstrapIcons from 'react-bootstrap-icons';
 import { ArrowRepeat, Check2, CloudArrowDownFill, Icon } from 'react-bootstrap-icons';
 import { useHistory, useParams } from 'react-router-dom';

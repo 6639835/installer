@@ -1,10 +1,10 @@
-import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import settings from 'renderer/rendererSettings';
 import { Directories } from 'renderer/utils/Directories';
-import { dialog } from '@electron/remote';
+import { dialog } from 'renderer/platform/desktopRemote';
 import { managedSim, TypeOfSimulator } from 'renderer/utils/SimManager';
+import { native } from 'renderer/platform/native';
 
 const possibleBasePaths: Record<TypeOfSimulator, { store: string; steam: string; linuxSteam: string }> = {
   msfs2020: {
@@ -27,13 +27,13 @@ const possibleBasePaths: Record<TypeOfSimulator, { store: string; steam: string;
 
 const basePathCache: Record<string, string | null> = {};
 
-export const msfsBasePath = (sim: TypeOfSimulator): string | null => {
+export const msfsBasePath = async (sim: TypeOfSimulator): Promise<string | null> => {
   if (basePathCache[sim] !== undefined) {
     return basePathCache[sim];
   }
 
   if (os.platform().toString() === 'linux') {
-    if (fs.existsSync(possibleBasePaths[sim].linuxSteam)) {
+    if (await native.exists(possibleBasePaths[sim].linuxSteam)) {
       return (basePathCache[sim] = possibleBasePaths[sim].linuxSteam);
     } else {
       return (basePathCache[sim] = null);
@@ -45,10 +45,10 @@ export const msfsBasePath = (sim: TypeOfSimulator): string | null => {
 
   const steamPath = path.join(possibleBasePaths[sim].steam, 'UserCfg.opt');
   const storePath = path.join(possibleBasePaths[sim].store, 'UserCfg.opt');
-  if (fs.existsSync(steamPath) && fs.existsSync(storePath)) return (basePathCache[sim] = null);
-  if (fs.existsSync(steamPath)) {
+  if ((await native.exists(steamPath)) && (await native.exists(storePath))) return (basePathCache[sim] = null);
+  if (await native.exists(steamPath)) {
     msfsConfigPath = steamPath;
-  } else if (fs.existsSync(storePath)) {
+  } else if (await native.exists(storePath)) {
     msfsConfigPath = storePath;
   }
 
@@ -61,7 +61,7 @@ export const msfsBasePath = (sim: TypeOfSimulator): string | null => {
 
 const communityDirCache: Record<string, string | null> = {};
 
-export const defaultCommunityDir = (msfsBase: string | null): string | null => {
+export const defaultCommunityDir = async (msfsBase: string | null): Promise<string | null> => {
   if (!msfsBase) {
     return null;
   }
@@ -71,12 +71,12 @@ export const defaultCommunityDir = (msfsBase: string | null): string | null => {
   }
 
   const msfsConfigPath = path.join(msfsBase, 'UserCfg.opt');
-  if (!fs.existsSync(msfsConfigPath)) {
+  if (!(await native.exists(msfsConfigPath))) {
     return (communityDirCache[msfsBase] = null);
   }
 
   try {
-    const msfsConfig = fs.readFileSync(msfsConfigPath).toString();
+    const msfsConfig = await native.readText(msfsConfigPath);
     const msfsConfigLines = msfsConfig.split(/\r?\n/);
     // Intentional space after InstalledPackagesPath to ensure not matching the InstalledPackagesPathNextBoot property added in MSFS2024 SU2.
     const packagesPathLine = msfsConfigLines.find((line) => line.includes('InstalledPackagesPath '));
@@ -102,7 +102,7 @@ export const defaultCommunityDir = (msfsBase: string | null): string | null => {
       }
     }
 
-    return (communityDirCache[msfsBase] = fs.existsSync(communityDir) ? communityDir : null);
+    return (communityDirCache[msfsBase] = (await native.exists(communityDir)) ? communityDir : null);
   } catch (e) {
     console.warn('Could not parse community dir from file', msfsConfigPath);
     console.error(e);
@@ -129,10 +129,10 @@ export const setupSimulatorBasePath = async (sim: TypeOfSimulator): Promise<stri
   const currentPath = Directories.simulatorBasePath(sim);
 
   const availablePaths: string[] = [];
-  if (fs.existsSync(possibleBasePaths[sim].store)) {
+  if (await native.exists(possibleBasePaths[sim].store)) {
     availablePaths.push('Microsoft Store Edition');
   }
-  if (fs.existsSync(possibleBasePaths[sim].steam)) {
+  if (await native.exists(possibleBasePaths[sim].steam)) {
     availablePaths.push('Steam Edition');
   }
 
@@ -190,4 +190,23 @@ export const setupTempLocation = async (): Promise<string> => {
   const currentPath = Directories.tempLocation(managedSim());
 
   return await selectPath(currentPath, 'Select a location for temporary folders', 'mainSettings.tempLocation');
+};
+
+export const ensureSimulatorPathDefaults = async (): Promise<void> => {
+  for (const sim of ['msfs2020', 'msfs2024'] as TypeOfSimulator[]) {
+    const configuredBasePath = settings.get<string, string | null>(`mainSettings.simulator.${sim}.basePath`);
+    if (configuredBasePath !== null) {
+      continue;
+    }
+
+    const detectedBasePath = await msfsBasePath(sim);
+    const detectedCommunityPath = await defaultCommunityDir(detectedBasePath);
+
+    if (detectedBasePath) {
+      settings.set(`mainSettings.simulator.${sim}.enabled`, true);
+      settings.set(`mainSettings.simulator.${sim}.basePath`, detectedBasePath);
+      settings.set(`mainSettings.simulator.${sim}.communityPath`, detectedCommunityPath);
+      settings.set(`mainSettings.simulator.${sim}.installPath`, detectedCommunityPath);
+    }
+  }
 };

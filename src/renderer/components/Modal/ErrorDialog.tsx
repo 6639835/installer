@@ -9,7 +9,7 @@ import {
   ShieldExclamation,
   ShieldLock,
 } from 'react-bootstrap-icons';
-import { clipboard, shell } from 'electron';
+import { clipboard, shell } from 'renderer/platform/desktop';
 import { FragmenterError, FragmenterErrorCode } from '@flybywiresim/fragmenter';
 import { SentrySessionCard } from 'renderer/components/SentrySessionCard';
 

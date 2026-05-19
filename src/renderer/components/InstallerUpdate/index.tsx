@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { ipcRenderer } from 'electron';
+import { ipcRenderer } from 'renderer/platform/desktop';
 import * as path from 'path';
 import channels from 'common/channels';
+import { getAppPaths } from 'renderer/platform/native';
 
 type IpcCallback = Parameters<(typeof ipcRenderer)['on']>[1];
 
@@ -49,7 +50,7 @@ export const InstallerUpdate = (): JSX.Element => {
         .then(() => {
           console.log('Showing Update notification');
           new Notification('Restart to update!', {
-            icon: path.join(process.resourcesPath, 'extraResources', 'icon.ico'),
+            icon: path.join(getAppPaths().resourceDir, 'icon.ico'),
             body: 'An update to the installer has been downloaded',
           });
         })

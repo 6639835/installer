@@ -22,11 +22,11 @@ export const ThirdPartyLicensesModal: React.FC = () => {
     popModal();
   };
 
-  const licenses: Licenses = thirdPartyLicensesFile;
+  const licenses: Licenses = thirdPartyLicensesFile as Licenses;
   const licenseEntries = Object.entries(licenses);
 
   // The scrollable element for your list
-  const parentRef = React.useRef();
+  const parentRef = React.useRef<HTMLDivElement>(null);
 
   const rowVirtualizer = useVirtualizer({
     count: Object.keys(licenses).length,
@@ -49,8 +49,7 @@ export const ThirdPartyLicensesModal: React.FC = () => {
 
             return (
               <div
-                ref={item.measureElement}
-                key={item.key}
+                key={String(item.key)}
                 className="absolute left-0 top-0 w-full"
                 style={{
                   transform: `translateY(${item.start}px)`,

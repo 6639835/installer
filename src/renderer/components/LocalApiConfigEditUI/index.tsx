@@ -1,13 +1,12 @@
 import React, { FC, useEffect, useState } from 'react';
-import * as print from 'pdf-to-printer';
 import { PromptModal, useModals } from '../Modal';
 import { Button, ButtonType } from '../Button';
-import fs from 'fs';
 import path from 'path';
 import { Toggle } from '../Toggle';
-import { app } from '@electron/remote';
+import { app } from 'renderer/platform/desktopRemote';
 import { Directories } from 'renderer/utils/Directories';
 import { Simulators } from 'renderer/utils/SimManager';
+import { native } from 'renderer/platform/native';
 
 const LEGACY_SIMBRIDGE_DIRECTORY = 'flybywire-externaltools-simbridge';
 const SIMBRIDGE_DIRECTORY = '/FlyByWireSim/Simbridge';
@@ -47,27 +46,29 @@ class LocalApiConfigurationHandler {
     return path.join(app.getPath('documents'), SIMBRIDGE_DIRECTORY);
   }
 
-  private static get simbridgeConfigPath(): string {
+  private static async simbridgeConfigPath(): Promise<string> {
     const configPath = path.join(this.simbridgeDirectory, 'resources', 'properties.json');
-    if (fs.existsSync(configPath)) {
+    if (await native.exists(configPath)) {
       return configPath;
     }
     // TODO remove this after a while once simbridge is released
     return path.join(this.legacySimbridgeDirectory, 'resources', 'properties.json');
   }
 
-  static getConfiguration(): LocalApiConfiguration {
-    if (fs.existsSync(this.simbridgeConfigPath)) {
-      console.log(`Loading configuration from ${this.simbridgeConfigPath}`);
+  static async getConfiguration(): Promise<LocalApiConfiguration> {
+    const simbridgeConfigPath = await this.simbridgeConfigPath();
 
-      return JSON.parse(fs.readFileSync(this.simbridgeConfigPath, 'utf8'));
+    if (await native.exists(simbridgeConfigPath)) {
+      console.log(`Loading configuration from ${simbridgeConfigPath}`);
+
+      return JSON.parse(await native.readText(simbridgeConfigPath));
     } else {
-      console.log(`No configuration found at ${this.simbridgeConfigPath}`);
+      console.log(`No configuration found at ${simbridgeConfigPath}`);
 
-      if (fs.existsSync(path.join(this.simbridgeDirectory, 'resources'))) {
-        console.log(`Creating configuration at ${this.simbridgeConfigPath}`);
+      if (await native.exists(path.join(this.simbridgeDirectory, 'resources'))) {
+        console.log(`Creating configuration at ${simbridgeConfigPath}`);
 
-        fs.writeFileSync(path.join(this.simbridgeConfigPath), JSON.stringify(localApiDefaultConfiguration));
+        await native.writeText(simbridgeConfigPath, JSON.stringify(localApiDefaultConfiguration));
 
         return localApiDefaultConfiguration;
       } else {
@@ -76,26 +77,31 @@ class LocalApiConfigurationHandler {
     }
   }
 
-  static saveConfiguration(propertyConfiguration: LocalApiConfiguration) {
-    if (fs.existsSync(this.simbridgeConfigPath)) {
-      fs.writeFileSync(this.simbridgeConfigPath, JSON.stringify(propertyConfiguration));
+  static async saveConfiguration(propertyConfiguration: LocalApiConfiguration) {
+    const simbridgeConfigPath = await this.simbridgeConfigPath();
+
+    if (await native.exists(simbridgeConfigPath)) {
+      await native.writeText(simbridgeConfigPath, JSON.stringify(propertyConfiguration));
     }
   }
 }
 
 export const LocalApiConfigEditUI: FC = () => {
   const [config, setConfig] = useState(null as LocalApiConfiguration);
-  const [printers, setPrinters] = useState([]);
+  const [savedConfig, setSavedConfig] = useState(null as LocalApiConfiguration);
+  const [printers, setPrinters] = useState<{ name: string }[]>([]);
 
   useEffect(() => {
-    print.getPrinters().then((p) => setPrinters(p));
+    setPrinters([]);
 
-    try {
-      const loaded = LocalApiConfigurationHandler.getConfiguration();
-      setConfig(loaded);
-    } catch (_) {
-      /**/
-    }
+    LocalApiConfigurationHandler.getConfiguration()
+      .then((loaded) => {
+        setConfig(loaded);
+        setSavedConfig(loaded);
+      })
+      .catch(() => {
+        /**/
+      });
   }, []);
 
   const { showModal } = useModals();
@@ -106,21 +112,26 @@ export const LocalApiConfigEditUI: FC = () => {
         title="Are you sure you want to do this?"
         bodyText="This will reset the configuration to the default values and cannot be undone."
         confirmColor={ButtonType.Danger}
-        onConfirm={() => {
-          LocalApiConfigurationHandler.saveConfiguration(localApiDefaultConfiguration);
+        onConfirm={async () => {
+          await LocalApiConfigurationHandler.saveConfiguration(localApiDefaultConfiguration);
           setConfig(localApiDefaultConfiguration);
+          setSavedConfig(localApiDefaultConfiguration);
         }}
       />,
     );
   };
 
-  const handleConfigSave = () => {
-    LocalApiConfigurationHandler.saveConfiguration(config);
-    setConfig(LocalApiConfigurationHandler.getConfiguration());
+  const handleConfigSave = async () => {
+    await LocalApiConfigurationHandler.saveConfiguration(config);
+    const loaded = await LocalApiConfigurationHandler.getConfiguration();
+    setConfig(loaded);
+    setSavedConfig(loaded);
   };
 
-  const handleDiscard = () => {
-    setConfig(LocalApiConfigurationHandler.getConfiguration());
+  const handleDiscard = async () => {
+    const loaded = await LocalApiConfigurationHandler.getConfiguration();
+    setConfig(loaded);
+    setSavedConfig(loaded);
   };
 
   if (config === null) {
@@ -133,7 +144,7 @@ export const LocalApiConfigEditUI: FC = () => {
     );
   }
 
-  const changesBeenMade = JSON.stringify(config) !== JSON.stringify(LocalApiConfigurationHandler.getConfiguration());
+  const changesBeenMade = JSON.stringify(config) !== JSON.stringify(savedConfig);
 
   const isDefaultConfig = JSON.stringify(config) === JSON.stringify(localApiDefaultConfiguration);
 

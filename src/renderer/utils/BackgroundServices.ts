@@ -5,8 +5,8 @@ import { ApplicationStatus } from 'renderer/components/AddonSection/Enums';
 import { ExternalApps } from 'renderer/utils/ExternalApps';
 import path from 'path';
 import { Directories } from 'renderer/utils/Directories';
-import { shell } from '@electron/remote';
-import { promises } from 'fs';
+import { shell } from 'renderer/platform/desktopRemote';
+import { native } from 'renderer/platform/native';
 
 export const STARTUP_FOLDER_PATH = 'Microsoft\\Windows\\Start Menu\\Programs\\Startup\\';
 
@@ -49,9 +49,7 @@ export class BackgroundServices {
 
     let folderEntries;
     try {
-      folderEntries = await promises.readdir(path.join(Directories.appData(), STARTUP_FOLDER_PATH), {
-        withFileTypes: true,
-      });
+      folderEntries = await native.readDir(path.join(Directories.appData(), STARTUP_FOLDER_PATH));
     } catch (e) {
       console.error(
         '[BackgroundServices](isAutoStartEnabled) Could not read contents of startup folder. See exception below',
@@ -63,7 +61,7 @@ export class BackgroundServices {
       return false;
     }
 
-    const shortcuts = folderEntries.filter((it) => it.isFile() && path.extname(it.name) === '.lnk');
+    const shortcuts = folderEntries.filter((it) => it.isFile && path.extname(it.name) === '.lnk');
     const matchingShortcut = shortcuts.find(
       (it) => path.parse(it.name).name === backgroundService.executableFileBasename,
     );
@@ -104,7 +102,7 @@ export class BackgroundServices {
         console.log('[BackgroundServices](setAutoStartEnabled) Shortcut created');
       }
     } else {
-      promises.rm(shortcutPath).catch((e) => {
+      native.remove(shortcutPath).catch((e) => {
         console.error('[BackgroundServices](setAutoStartEnabled) Could not remove shortcut. See exception below.');
         console.error(e);
       });

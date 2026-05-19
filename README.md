@@ -7,8 +7,15 @@ This repository contains the installer for FlyByWire Simulations projects such a
 
 ## How to contribute
 
-The installer is built as an [Electron Application](https://www.electronjs.org/) for Windows and Linux
-using [TypeScript](https://www.typescriptlang.org/) and [React](https://reactjs.org/).
+The installer is built with [Tauri](https://tauri.app/), [Rust](https://www.rust-lang.org/),
+[TypeScript](https://www.typescriptlang.org/), and [React](https://reactjs.org/).
+
+The project is organized as:
+
+- `src-tauri/`: Rust desktop application, native commands, bundling config, and packaged resources.
+- `src/renderer/`: React webview application.
+- `src/renderer/platform/`: Tauri bridge and compatibility adapters replacing the old Electron APIs.
+- `src/common/`: shared TypeScript constants.
 
 ### Requirements
 
@@ -16,17 +23,9 @@ Please make sure you have:
 
 - [git](https://git-scm.com/downloads)
 - [NodeJS 20](https://nodejs.org/en/)
+- [Rust stable](https://www.rust-lang.org/tools/install)
+- Tauri platform prerequisites for your OS
 
-If you want to build flatpaks (package:flatpak, package:linux, package:all) you will also need to install the following from your preferred package manager:
-
-- [flatpak](https://flatpak.org/)
-- [flatpak-builder](https://docs.flatpak.org/en/latest/building-introduction.html)
-
-After installing flatpak add the flathub remote:
-
-```shell script
-flatpak --user remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-```
 ### Get started
 
 First fork the project and install the dependencies
@@ -47,19 +46,12 @@ To build the package as an executable application, run
 npm run package
 ```
 
-On Windows this will build an .exe file, on Linux it will build as .AppImage, .deb and .rpm. If you wish to target specific ways of distribution, you may instead run:
+On Windows this builds an `.exe` installer. On Linux it builds `.AppImage`, `.deb`, and `.rpm` bundles. If you wish to target a specific bundle, run:
 
 ```shell
-npm run package:all # packages for all targets
 npm run package:win # packages for windows (.exe)
-npm run package:linux # packages for all linux targets (.AppImage,.deb,.rpm,.flatpak and .snap)
+npm run package:linux # packages for all Linux targets (.AppImage, .deb, .rpm)
 npm run package:appimage # packages as .AppImage
 npm run package:deb # packages as .deb
 npm run package:rpm # packages as .rpm
-npm run package:snap # packages as .snap
-npm run package:flatpak # packages as .flatpak
 ```
-
-Packaged applications (.exe and .AppImage only) will automatically update if there is a newer version available (compared to build version in package.json). On windows, this does
-also apply to development versions (ending on -devXX), which are updated via a separate stream. Updates are distributed once the build
-version is changed and a tag has been added.

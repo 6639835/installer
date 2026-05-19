@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import path from 'path';
-import { ipcRenderer } from 'electron';
+import { ipcRenderer } from 'renderer/platform/desktop';
 import channels from 'common/channels';
+import { getAppPaths } from 'renderer/platform/native';
 
 export const DebugSection = (): JSX.Element => {
   const [ipcMessage, setIpcMessage] = useState<string>(channels.window.minimize);
@@ -10,9 +11,10 @@ export const DebugSection = (): JSX.Element => {
     Notification.requestPermission()
       .then(() => {
         console.log('Showing test notification');
-        console.log(path.join(process.resourcesPath, 'extraResources', 'icon.ico'));
+        const iconPath = path.join(getAppPaths().resourceDir, 'icon.ico');
+        console.log(iconPath);
         new Notification('This is a test!', {
-          icon: path.join(process.resourcesPath, 'extraResources', 'icon.ico'),
+          icon: iconPath,
           body: 'We did something that you should know about.',
         });
       })

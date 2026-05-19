@@ -6,11 +6,11 @@ import './index.css';
 import { Addon } from 'renderer/utils/InstallerConfiguration';
 import { useInView } from 'react-intersection-observer';
 import { ReleaseData } from 'renderer/redux/types';
-import { GitVersions } from '@flybywiresim/api-client';
 import { addReleases } from 'renderer/redux/features/releaseNotes';
 import { useSetting } from 'renderer/rendererSettings';
 import dateFormat from 'dateformat';
 import { ArrowUp } from 'react-bootstrap-icons';
+import { GitHub } from 'renderer/utils/GitHub';
 
 interface ReleaseNoteCardProps {
   release: ReleaseData;
@@ -77,7 +77,7 @@ export const ReleaseNotes = ({ addon }: { addon: Addon }): JSX.Element => {
   useEffect(() => {
     if (inView) {
       if (addon.repoOwner && addon.repoName) {
-        GitVersions.getReleases(addon.repoOwner, addon.repoName, false, releaseNotes.length, 5).then((res) => {
+        GitHub.getReleases(addon.repoOwner, addon.repoName, releaseNotes.length, 5).then((res) => {
           const content = res.map((release) => ({
             name: release.name,
             publishedAt: release.publishedAt.getTime(),

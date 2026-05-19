@@ -1,15 +1,11 @@
 'use strict';
 
 module.exports = {
-    purge: {
-        mode: 'jit',
-        content: [
-            './src/**/*.html',
-            './src/**/*.jsx',
-            './src/**/*.tsx',
-        ],
-    },
-    darkMode: false, // or 'media' or 'class'
+    content: [
+        './index.html',
+        './src/**/*.{html,jsx,tsx}',
+    ],
+    darkMode: 'media',
     theme: {
         extend: {
             height: {

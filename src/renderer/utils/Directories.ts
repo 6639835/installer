@@ -1,9 +1,9 @@
 import path from 'path';
 import { Addon } from 'renderer/utils/InstallerConfiguration';
-import fs from 'fs';
 import settings from 'renderer/rendererSettings';
-import { app } from '@electron/remote';
+import { app } from 'renderer/platform/desktopRemote';
 import { Simulators, TypeOfSimulator } from './SimManager';
+import { native } from 'renderer/platform/native';
 
 const TEMP_DIRECTORY_PREFIX = 'flybywire-current-install';
 
@@ -86,30 +86,29 @@ export class Directories {
     return path.join(baseDir, this.sanitize(targetDir));
   }
 
-  static temp(sim: TypeOfSimulator): string {
+  static async temp(sim: TypeOfSimulator): Promise<string> {
     const dir = path.join(
       Directories.tempLocation(sim),
       `${TEMP_DIRECTORY_PREFIX}-${(Math.random() * 1000).toFixed(0)}`,
     );
-    if (fs.existsSync(dir)) {
+    if (await native.exists(dir)) {
       return Directories.temp(sim);
     }
     return dir;
   }
 
-  static removeAllTemp(): void {
+  static async removeAllTemp(): Promise<void> {
     console.log('[CLEANUP] Removing all temp directories');
 
     for (const sim in Simulators) {
-      if (!fs.existsSync(Directories.tempLocation(sim as TypeOfSimulator))) {
+      if (!(await native.exists(Directories.tempLocation(sim as TypeOfSimulator)))) {
         console.warn('[CLEANUP] Location of temporary folders does not exist. Aborting');
         return;
       }
 
       try {
-        const dirents = fs
-          .readdirSync(Directories.tempLocation(sim as TypeOfSimulator), { withFileTypes: true })
-          .filter((dirEnt) => dirEnt.isDirectory())
+        const dirents = (await native.readDir(Directories.tempLocation(sim as TypeOfSimulator)))
+          .filter((dirEnt) => dirEnt.isDirectory)
           .filter((dirEnt) => TEMP_DIRECTORY_PREFIXES_FOR_CLEANUP.some((it) => dirEnt.name.startsWith(it)));
 
         for (const dir of dirents) {
@@ -117,7 +116,7 @@ export class Directories {
 
           console.log('[CLEANUP] Removing', fullPath);
           try {
-            fs.rmSync(fullPath, { recursive: true });
+            await native.remove(fullPath, true);
             console.log('[CLEANUP] Removed', fullPath);
           } catch (e) {
             console.error('[CLEANUP] Could not remove', fullPath, e);
@@ -131,31 +130,31 @@ export class Directories {
     }
   }
 
-  static removeAlternativesForAddon(addon: Addon): void {
-    addon.alternativeNames?.forEach((altName) => {
+  static async removeAlternativesForAddon(addon: Addon): Promise<void> {
+    for (const altName of addon.alternativeNames ?? []) {
       const altDir = Directories.inInstallLocation(addon.simulator, altName);
 
-      if (fs.existsSync(altDir)) {
+      if (await native.exists(altDir)) {
         console.log('Removing alternative', altDir);
-        fs.rmSync(altDir, { recursive: true });
+        await native.remove(altDir, true);
       }
-    });
+    }
   }
 
-  static isFragmenterInstall(target: string | Addon): boolean {
+  static async isFragmenterInstall(target: string | Addon): Promise<boolean> {
     const targetDir =
       typeof target === 'string' ? target : Directories.inInstallLocation(target.simulator, target.targetDirectory);
 
-    return fs.existsSync(path.join(targetDir, 'install.json'));
+    return native.exists(path.join(targetDir, 'install.json'));
   }
 
-  static isGitInstall(target: string | Addon): boolean {
+  static async isGitInstall(target: string | Addon): Promise<boolean> {
     const targetDir =
       typeof target === 'string' ? target : Directories.inInstallLocation(target.simulator, target.targetDirectory);
 
     try {
-      const symlinkPath = fs.readlinkSync(targetDir);
-      if (symlinkPath && fs.existsSync(path.join(symlinkPath, '/../../../.git'))) {
+      const symlinkPath = await native.readLink(targetDir);
+      if (symlinkPath && (await native.exists(path.join(symlinkPath, '/../../../.git')))) {
         console.log('Is git repo', targetDir);
         return true;
       }

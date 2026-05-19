@@ -1,7 +1,7 @@
 import React, { FC, useState } from 'react';
 import { useAppSelector } from 'renderer/redux/store';
 import { Clipboard, ClipboardCheck } from 'react-bootstrap-icons';
-import { clipboard } from 'electron';
+import { clipboard } from 'renderer/platform/desktop';
 
 export const SentrySessionCard: FC = () => {
   const sessionID = useAppSelector((state) => state.sentrySessionID.sessionID);

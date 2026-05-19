@@ -16,7 +16,10 @@
       "*": ["node_modules/*"],
       "common/*": ["./src/common/*"],
       "renderer/*": ["./src/renderer/*"],
-      "main/*": ["./src/main/*"]
+      "@flybywiresim/fragmenter": ["./src/renderer/platform/fragmenterCompat.ts"],
+      "fs": ["./src/renderer/platform/node/fs.ts"],
+      "os": ["./src/renderer/platform/node/os.ts"],
+      "path": ["./src/renderer/platform/node/path.ts"]
     },
     "jsx": "react"
   },

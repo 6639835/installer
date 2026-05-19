@@ -8,7 +8,7 @@ import {
 import settings from 'renderer/rendererSettings';
 import { Directories } from 'renderer/utils/Directories';
 import * as os from 'os';
-import { ipcRenderer } from 'electron';
+import { ipcRenderer } from 'renderer/platform/desktop';
 import channels from 'common/channels';
 import { TypeOfSimulator } from 'renderer/utils/SimManager';
 import { useErrors } from './useErrors';

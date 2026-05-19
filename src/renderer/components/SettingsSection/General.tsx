@@ -1,6 +1,6 @@
 import React, { FC } from 'react';
 import settings, { useSetting } from 'renderer/rendererSettings';
-import { ipcRenderer } from 'electron';
+import { ipcRenderer } from 'renderer/platform/desktop';
 import { Toggle } from '../Toggle';
 
 const SettingsItem: FC<{ name: string }> = ({ name, children }) => (

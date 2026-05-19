@@ -11,7 +11,6 @@ import {
   updateDownloadProgress,
 } from 'renderer/redux/features/downloads';
 import { Directories } from 'renderer/utils/Directories';
-import fs from 'fs';
 import os from 'os';
 import { ApplicationStatus, InstallStatus, InstallStatusCategories } from 'renderer/components/AddonSection/Enums';
 import {
@@ -20,7 +19,6 @@ import {
   FragmenterInstallerEvents,
   FragmenterOperation,
   FragmenterUpdateChecker,
-  getCurrentInstall,
   InstallManifest,
 } from '@flybywiresim/fragmenter';
 import settings from 'renderer/rendererSettings';
@@ -37,15 +35,17 @@ import { BackgroundServices } from 'renderer/utils/BackgroundServices';
 import { CannotInstallDialog } from 'renderer/components/Modal/CannotInstallDialog';
 import { ExternalApps } from 'renderer/utils/ExternalApps';
 import { ExternalAppsUI } from './ExternalAppsUI';
-import { ipcRenderer } from 'electron';
+import { ipcRenderer } from 'renderer/platform/desktop';
 import channels from 'common/channels';
-import * as Sentry from '@sentry/electron/renderer';
+import * as Sentry from '@sentry/browser';
 import { ErrorDialog } from 'renderer/components/Modal/ErrorDialog';
 import { InstallSizeDialog } from 'renderer/components/Modal/InstallSizeDialog';
 import { IncompatibleAddOnsCheck } from 'renderer/utils/IncompatibleAddOnsCheck';
 import { FreeDiskSpace, FreeDiskSpaceStatus } from 'renderer/utils/FreeDiskSpace';
 import { setAddonAndTrackLatestReleaseInfo } from 'renderer/redux/features/latestVersionNames';
 import { AddonData, ReleaseInfo } from 'renderer/utils/AddonData';
+import { native } from 'renderer/platform/native';
+import { getAppPaths } from 'renderer/platform/native';
 
 type FragmenterEventArguments<K extends keyof FragmenterInstallerEvents | keyof FragmenterContextEvents> = Parameters<
   (FragmenterInstallerEvents & FragmenterContextEvents)[K]
@@ -213,7 +213,7 @@ export class InstallManager {
     }
 
     const destDir = Directories.inInstallLocation(addon.simulator, addon.targetDirectory);
-    const tempDir = Directories.temp(addon.simulator);
+    const tempDir = await Directories.temp(addon.simulator);
 
     const fragmenterUpdateChecker = new FragmenterUpdateChecker();
     const updateInfo = await fragmenterUpdateChecker.needsUpdate(track.url, destDir, { forceCacheBust: true });
@@ -281,8 +281,8 @@ export class InstallManager {
 
     try {
       // Create dest dir if it doesn't exist
-      if (!fs.existsSync(destDir)) {
-        fs.mkdirSync(destDir);
+      if (!(await native.exists(destDir))) {
+        await native.createDirAll(destDir);
       }
 
       let lastPercent = 0;
@@ -482,7 +482,7 @@ export class InstallManager {
 
       // Remove installs existing under alternative names
       console.log('[InstallManager](installAddon) Removing installs existing under alternative names');
-      Directories.removeAlternativesForAddon(addon);
+      await Directories.removeAlternativesForAddon(addon);
       console.log('[InstallManager](installAddon) Finished removing installs existing under alternative names');
 
       this.notifyDownload(addon, true);
@@ -601,9 +601,9 @@ export class InstallManager {
     this.setCurrentlyInstalledTrack(addon, null);
   }
 
-  private static getAddonInstall(directory: string): InstallManifest | null {
+  private static async getAddonInstall(directory: string): Promise<InstallManifest | null> {
     try {
-      return getCurrentInstall(directory);
+      return JSON.parse(await native.readText(path.join(directory, 'install.json')));
     } catch (e) {
       return null;
     }
@@ -652,14 +652,14 @@ export class InstallManager {
     return addon.tracks[0];
   }
 
-  public static determineAddonInstalledTrack(addon: Addon): AddonTrack | null {
+  public static async determineAddonInstalledTrack(addon: Addon): Promise<AddonTrack | null> {
     const installedTrack = store.getState().installedTracks[addon.key] as AddonTrack;
 
     if (installedTrack) {
       return installedTrack;
     }
 
-    const install = this.getAddonInstall(Directories.inInstallLocation(addon.simulator, addon.targetDirectory));
+    const install = await this.getAddonInstall(Directories.inInstallLocation(addon.simulator, addon.targetDirectory));
 
     if (!install) {
       return null;
@@ -696,10 +696,10 @@ export class InstallManager {
     console.log('[InstallManager](determineAddonInstallStatus) Checking install status');
 
     const installDir = Directories.inInstallLocation(addon.simulator, addon.targetDirectory);
-    const addonInstalledTrack = this.determineAddonInstalledTrack(addon);
+    const addonInstalledTrack = await this.determineAddonInstalledTrack(addon);
     const addonSelectedTrack = this.getAddonSelectedTrack(addon);
 
-    if (!fs.existsSync(installDir)) {
+    if (!(await native.exists(installDir))) {
       console.log('[InstallManager](determineAddonInstallStatus) Is not installed');
 
       return { status: InstallStatus.NotInstalled };
@@ -707,7 +707,7 @@ export class InstallManager {
 
     console.log('[InstallManager](determineAddonInstallStatus) Checking for git install');
 
-    if (Directories.isGitInstall(installDir)) {
+    if (await Directories.isGitInstall(installDir)) {
       console.log('[InstallManager](determineAddonInstallStatus) Is git install');
 
       return { status: InstallStatus.GitInstall };
@@ -805,12 +805,12 @@ export class InstallManager {
 
         if (successful) {
           new Notification(`${addon.name} download complete!`, {
-            icon: path.join(process.resourcesPath, 'extraResources', 'icon.ico'),
+            icon: path.join(getAppPaths().resourceDir, 'icon.ico'),
             body: 'Take to the skies!',
           });
         } else {
           new Notification('Download failed!', {
-            icon: path.join(process.resourcesPath, 'extraResources', 'icon.ico'),
+            icon: path.join(getAppPaths().resourceDir, 'icon.ico'),
             body: 'Oops, something went wrong',
           });
         }

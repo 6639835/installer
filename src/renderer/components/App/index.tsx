@@ -13,7 +13,7 @@ import { Redirect, Route, Switch, useHistory, useLocation } from 'react-router-d
 import { useAppSelector } from 'renderer/redux/store';
 import settings, { useSetting } from 'renderer/rendererSettings';
 import './index.css';
-import { ipcRenderer } from 'electron';
+import { ipcRenderer } from 'renderer/platform/desktop';
 import channels from 'common/channels';
 import { ModalContainer } from '../Modal';
 import { PublisherSection } from 'renderer/components/PublisherSection';
@@ -21,7 +21,7 @@ import * as packageInfo from '../../../../package.json';
 import { InstallManager } from 'renderer/utils/InstallManager';
 import { enabledSimulators, Simulators } from 'renderer/utils/SimManager';
 
-const App = () => {
+const App = (): JSX.Element => {
   const history = useHistory();
   const location = useLocation();
 
@@ -42,7 +42,9 @@ const App = () => {
 
   useEffect(() => {
     for (const addon of addons) {
-      void InstallManager.refreshAddonInstallState(addon).then(() => void InstallManager.checkForUpdates(addon));
+      void InstallManager.refreshAddonInstallState(addon).then((): void => {
+        void InstallManager.checkForUpdates(addon);
+      });
     }
 
     if (settings.get('cache.main.lastShownSection')) {

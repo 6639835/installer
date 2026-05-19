@@ -1,4 +1,4 @@
-import React, { FC } from 'react';
+import React, { FC, useEffect, useState } from 'react';
 import {
   Addon,
   DirectoryDefinition,
@@ -6,12 +6,12 @@ import {
   NamedDirectoryDefinition,
 } from 'renderer/utils/InstallerConfiguration';
 import { BoxArrowRight, Folder } from 'react-bootstrap-icons';
-import { ipcRenderer, shell } from 'electron';
+import { ipcRenderer, shell } from 'renderer/platform/desktop';
 import { Directories } from 'renderer/utils/Directories';
 import { useAppSelector } from 'renderer/redux/store';
 import { InstallStatusCategories } from 'renderer/components/AddonSection/Enums';
-import fs from 'fs';
 import channels from 'common/channels';
+import { native } from 'renderer/platform/native';
 
 export interface MyInstallProps {
   addon: Addon;
@@ -19,6 +19,7 @@ export interface MyInstallProps {
 
 export const MyInstall: FC<MyInstallProps> = ({ addon }) => {
   const installStates = useAppSelector((state) => state.installStatus);
+  const [existingDirectories, setExistingDirectories] = useState<Record<string, boolean>>({});
 
   const links: ExternalLink[] = [...(addon.myInstallPage?.links ?? [])];
 
@@ -49,15 +50,8 @@ export const MyInstall: FC<MyInstallProps> = ({ addon }) => {
         return Directories.inInstallPackage(addon, def.location.path);
       case 'packageCache':
         return Directories.inPackageCache(addon, def.location.path);
-      case 'documents': {
-        const documents = Directories.inDocumentsFolder(def.location.path);
-        if (fs.existsSync(documents)) {
-          return documents;
-        }
-        // fallback for simbridge installations prior to 0.6
-        // remove after transition period
-        return Directories.inInstallPackage(addon, 'resources');
-      }
+      case 'documents':
+        return Directories.inDocumentsFolder(def.location.path);
     }
   };
 
@@ -65,11 +59,26 @@ export const MyInstall: FC<MyInstallProps> = ({ addon }) => {
     ipcRenderer.send(channels.openPath, fulldirectory(def));
   };
 
-  const existsDirectory = (def: DirectoryDefinition) => {
-    return fs.existsSync(fulldirectory(def));
-  };
-
   const directoriesDisabled = !InstallStatusCategories.installed.includes(installStates[addon.key]?.status);
+
+  useEffect(() => {
+    let mounted = true;
+
+    Promise.all(
+      directories.map(async (directory) => {
+        const fullPath = fulldirectory(directory);
+        return [fullPath, await native.exists(fullPath)] as const;
+      }),
+    ).then((results) => {
+      if (mounted) {
+        setExistingDirectories(Object.fromEntries(results));
+      }
+    });
+
+    return () => {
+      mounted = false;
+    };
+  }, [addon.key, installStates[addon.key]?.status]);
 
   return (
     <div className="mt-5 flex size-full flex-row gap-x-8 text-quasi-white">
@@ -101,7 +110,7 @@ export const MyInstall: FC<MyInstallProps> = ({ addon }) => {
             {directories.map((it) => (
               <button
                 key={it.title}
-                className={`flex items-center gap-x-5 rounded-md border-2 border-navy-light bg-navy-light px-7 py-4 text-3xl transition-colors duration-100 hover:border-cyan hover:bg-transparent ${directoriesDisabled || !existsDirectory(it) ? 'pointer-events-none opacity-60' : ''}`}
+                className={`flex items-center gap-x-5 rounded-md border-2 border-navy-light bg-navy-light px-7 py-4 text-3xl transition-colors duration-100 hover:border-cyan hover:bg-transparent ${directoriesDisabled || !existingDirectories[fulldirectory(it)] ? 'pointer-events-none opacity-60' : ''}`}
                 onClick={() => handleClickDirectory(it)}
               >
                 <Folder size={24} />

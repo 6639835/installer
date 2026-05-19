@@ -1,6 +1,6 @@
 import { Addon, AddonTrack, GithubBranchReleaseModel } from 'renderer/utils/InstallerConfiguration';
-import { GitVersions } from '@flybywiresim/api-client';
 import yaml from 'js-yaml';
+import { GitHub } from 'renderer/utils/GitHub';
 
 export type ReleaseInfo = {
   name: string;
@@ -21,7 +21,7 @@ export class AddonData {
   }
 
   private static async latestVersionForReleasedTrack(addon: Addon): Promise<ReleaseInfo> {
-    return GitVersions.getReleases(addon.repoOwner, addon.repoName).then((releases) => ({
+    return GitHub.getReleases(addon.repoOwner, addon.repoName).then((releases) => ({
       name: releases[0].name,
       releaseDate: releases[0].publishedAt.getTime(),
       changelogUrl: releases[0].htmlUrl,
@@ -32,7 +32,7 @@ export class AddonData {
     addon: Addon,
     releaseModel: GithubBranchReleaseModel,
   ): Promise<ReleaseInfo> {
-    return GitVersions.getNewestCommit(addon.repoOwner, addon.repoName, releaseModel.branch).then((commit) => ({
+    return GitHub.getNewestCommit(addon.repoOwner, addon.repoName, releaseModel.branch).then((commit) => ({
       name: commit.sha.substring(0, 7),
       releaseDate: commit.timestamp.getTime(),
     }));
