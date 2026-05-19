@@ -21,6 +21,7 @@ import { ensureSimulatorPathDefaults } from 'renderer/actions/install-path.utils
 import { GitHub } from 'renderer/utils/GitHub';
 
 import 'simplebar-react/dist/simplebar.min.css';
+import './fbw.scss';
 import './index.scss';
 import { Button, ButtonType } from 'renderer/components/Button';
 
